@@ -4,17 +4,10 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.CodingErrorAction;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -29,14 +22,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.config.ConnectionConfig;
-import org.apache.http.config.MessageConstraints;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
 import org.apache.http.config.SocketConfig;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -48,56 +34,36 @@ public class HttpClientUtils {
 	private static final int MAX_TOTAL_CONNECTIONS = 2;
 	private static final int MAX_ROUTE_CONNECTIONS = 2;
 	private static final int CONNECT_TIMEOUT = 10000;
-	
+
 	private static PoolingHttpClientConnectionManager connManager = null;
 
 	static {
-		try {
-			SSLContext sslContext = SSLContexts.custom().useTLS().build();
-			X509TrustManager tm = new X509TrustManager() {
-				@Override
-				public void checkClientTrusted(X509Certificate[] chain, String authType) {
-				}
-
-				@Override
-				public void checkServerTrusted(X509Certificate[] chain, String authType) {
-				}
-
-				@Override
-				public X509Certificate[] getAcceptedIssuers() {
-					return null;
-				}
-			};
-			sslContext.init(null, new TrustManager[] { tm }, null);
-			Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory> create()
-					.register("http", PlainConnectionSocketFactory.INSTANCE)
-					.register("https", new SSLConnectionSocketFactory(sslContext)).build();
-			connManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
-			// Create socket configuration
-			SocketConfig socketConfig = SocketConfig.custom().setTcpNoDelay(true).build();
-			connManager.setDefaultSocketConfig(socketConfig);
-			// Create message constraints
-			MessageConstraints messageConstraints = MessageConstraints.custom().setMaxHeaderCount(200)
-					.setMaxLineLength(2000).build();
-			// Create connection configuration
-			ConnectionConfig connectionConfig = ConnectionConfig.custom()
-					.setMalformedInputAction(CodingErrorAction.IGNORE)
-					.setUnmappableInputAction(CodingErrorAction.IGNORE).setCharset(Consts.UTF_8)
-					.setMessageConstraints(messageConstraints).build();
-			connManager.setDefaultConnectionConfig(connectionConfig);
-			connManager.setMaxTotal(MAX_TOTAL_CONNECTIONS);
-			connManager.setDefaultMaxPerRoute(MAX_ROUTE_CONNECTIONS);
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
+		connManager = new PoolingHttpClientConnectionManager();
+		SocketConfig socketConfig = SocketConfig.custom()
+				.setSoTimeout(CONNECT_TIMEOUT)
+				.setTcpNoDelay(true)
+				.build();
+		connManager.setDefaultSocketConfig(socketConfig);
+		ConnectionConfig connectionConfig = ConnectionConfig.custom()
+				.setMalformedInputAction(CodingErrorAction.IGNORE)
+				.setUnmappableInputAction(CodingErrorAction.IGNORE)
+				.setCharset(Consts.UTF_8)
+				.build();
+		connManager.setDefaultConnectionConfig(connectionConfig);
+		connManager.setMaxTotal(MAX_TOTAL_CONNECTIONS);
+		connManager.setDefaultMaxPerRoute(MAX_ROUTE_CONNECTIONS);
 	}
 
 	private static CloseableHttpClient getDefaultHttpClient() {
-		RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(CONNECT_TIMEOUT)
-				.setConnectionRequestTimeout(CONNECT_TIMEOUT).setSocketTimeout(CONNECT_TIMEOUT).build();
-		return HttpClients.custom().setConnectionManager(connManager).setDefaultRequestConfig(requestConfig).build();
+		RequestConfig requestConfig = RequestConfig.custom()
+				.setConnectTimeout(CONNECT_TIMEOUT)
+				.setConnectionRequestTimeout(CONNECT_TIMEOUT)
+				.setSocketTimeout(CONNECT_TIMEOUT)
+				.build();
+		return HttpClients.custom()
+				.setConnectionManager(connManager)
+				.setDefaultRequestConfig(requestConfig)
+				.build();
 	}
 
 	public static String doGet(String url, Map<String, String> headers, Map<String, String> params) {
@@ -156,7 +122,8 @@ public class HttpClientUtils {
 		}
 	}
 
-	public static String doPostByForm(String url, Map<String, String> headers, Map<String, String> params, String encoding) {
+	public static String doPostByForm(String url, Map<String, String> headers, Map<String, String> params,
+			String encoding) {
 		if (StringUtils.isBlank(url)) {
 			throw new IllegalAccessError("url can not null");
 		}
@@ -199,7 +166,8 @@ public class HttpClientUtils {
 		}
 	}
 
-	public static String doPostByJson(String url, Map<String, String> headers, Map<String, String> params, String encoding) {
+	public static String doPostByJson(String url, Map<String, String> headers, Map<String, String> params,
+			String encoding) {
 		if (StringUtils.isBlank(url)) {
 			throw new IllegalAccessError("url can not null");
 		}
