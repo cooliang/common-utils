@@ -1,4 +1,4 @@
-package net.cooliang.common.utils.http;
+package net.cooliang.common.util.http;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
