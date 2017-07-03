@@ -42,6 +42,7 @@ public class HttpClientUtils {
 		SocketConfig socketConfig = SocketConfig.custom()
 				.setSoTimeout(CONNECT_TIMEOUT)
 				.setTcpNoDelay(true)
+				.setSoKeepAlive(true)
 				.build();
 		connManager.setDefaultSocketConfig(socketConfig);
 		ConnectionConfig connectionConfig = ConnectionConfig.custom()
